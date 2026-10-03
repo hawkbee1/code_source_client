@@ -1,0 +1,8 @@
+tags:
+  # Real downloads from GitHub; skipped by default. Run them with the
+  # Very Good CLI MCP test tool: tags "network", run_skipped true.
+  network:
+    skip: "Downloads from GitHub; run with tags: network and run_skipped."
+    timeout: 5m
+  # Keeps a file out of Very Good CLI's test merging (which drops tags).
+  skip_very_good_optimization:
