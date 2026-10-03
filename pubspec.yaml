@@ -1,0 +1,22 @@
+name: code_source_client
+description: "Gets Dart source code for dart_code_3D (local folder, zip or public git repository) into a temporary snapshot."
+version: 0.1.0+1
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  archive: ^4.0.7
+  code_graph:
+    path: ../code_graph
+  equatable: ^3.0.0
+  http: ^1.6.0
+  meta: ^1.16.0
+  path: ^1.9.1
+
+dev_dependencies:
+  mocktail: ^1.0.5
+  test: ^1.31.0
+  very_good_analysis: ^11.0.0
