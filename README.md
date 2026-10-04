@@ -1,61 +1,77 @@
-# Code Source Client
+# code_source_client
 
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
-[![Powered by Mason](https://img.shields.io/endpoint?url=https%3A%2F%2Ftinyurl.com%2Fmason-badge)](https://github.com/felangel/mason)
 [![License: MIT][license_badge]][license_link]
 
-Gets Dart source code for dart_code_3D: a local folder, a zip, or a public git repository, into a temporary snapshot.
+Gets the Dart source code that [dart_code_3D](https://github.com/hawkbee1/dart_code_3d)
+analyzes, into a **snapshot**. Getting the code is separate from analyzing it: the
+engine only ever sees a `SourceSnapshot`. Pure Dart, works on the web.
 
-## Installation 💻
+## Part of hawkbee
 
-**❗ In order to start using Code Source Client you must have the [Dart SDK][dart_install_link] installed on your machine.**
-
-Install via `dart pub add`:
-
-```sh
-dart pub add code_source_client
-```
-
----
-
-## Continuous Integration 🤖
-
-Code Source Client comes with a built-in [GitHub Actions workflow][github_actions_link] powered by [Very Good Workflows][very_good_workflows_link] but you can also add your preferred CI/CD solution.
-
-Out of the box, on each pull request and push, the CI `formats`, `lints`, and `tests` the code. This ensures the code remains consistent and behaves correctly as you add functionality or make changes. The project uses [Very Good Analysis][very_good_analysis_link] for a strict set of analysis options used by our team. Code coverage is enforced using the [Very Good Workflows][very_good_workflows_link].
-
----
-
-## Running Tests 🧪
-
-To run all unit tests:
+This repository is a git submodule of the
+[hawkbee](https://github.com/hawkbee1/hawkbee) monorepo and **only builds inside it**:
 
 ```sh
-dart pub global activate coverage 1.15.0
-dart test --coverage=coverage
-dart pub global run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info
+git clone --recurse-submodules https://github.com/hawkbee1/hawkbee.git
+cd hawkbee && flutter pub get
 ```
 
-To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov).
+## Sources
+
+| Source | Native platforms | Web |
+|---|---|---|
+| `LocalFolderSource(path)` | read in place, nothing copied; links are not followed | unsupported (`UnsupportedOnWeb`) |
+| `ZipBytesSource(fileName:, bytes:)` | extracted into a temporary directory | extracted into memory |
+| `GitRepositorySource(url, ref:)` | public GitHub/GitLab archive over HTTPS, no git binary | unsupported: browsers block the download (no CORS) |
+
+Accepted repository URLs: `https://github.com/o/r(.git)`, `git@github.com:o/r.git`,
+`ssh://git@github.com/o/r.git`, `github.com/o/r`, browser URLs with `/tree/<ref>`, and
+the same for gitlab.com (with subgroups and `/-/tree/<ref>`). Without a ref, GitHub's
+default branch is downloaded directly; GitLab's is looked up first. The commit is read
+from the archive's top folder.
+
+Only `.dart` files, `pubspec.yaml` and `analysis_options.yaml` are kept, outside hidden
+folders and `build/`. A single wrapping top folder is stripped (`AltMe-main/…`), unless
+it is a package folder such as `lib/`.
+
+## Usage
+
+```dart
+final client = CodeSourceClient();
+await for (final event in client.fetch(
+  const GitRepositorySource('https://github.com/TalaoDAO/AltMe'),
+)) {
+  switch (event) {
+    case FetchProgress(:final phase, :final done, :final total):
+      print('$phase $done/${total ?? '?'}');
+    case FetchDone(:final snapshot):
+      print(snapshot.paths.length);
+      await snapshot.dispose(); // deletes the temporary folder
+    case FetchFailed(:final failure):
+      print(failure.message);
+  }
+}
+```
+
+Cancelling the subscription stops the fetch and deletes what was stored. Failures are
+typed (`SourceNotFound`, `InvalidGitUrl`, `RepositoryNotFound` (also private repos),
+`RateLimited`, `NetworkFailure`, `ArchiveTooLarge`, `InvalidArchive`, `UnsupportedOnWeb`).
+Zip entries with absolute paths or `..` are refused, and archives and extracted code are
+capped (500 MB each by default).
+
+## Running tests
 
 ```sh
-# Generate Coverage Report
-genhtml coverage/lcov.info -o coverage/
-
-# Open Coverage Report
-open coverage/index.html
+very_good test --coverage
 ```
 
-[dart_install_link]: https://dart.dev/get-dart
-[github_actions_link]: https://docs.github.com/en/actions/learn-github-actions
+The real GitHub downloads in `test/network/` are skipped by default; run them with the
+Very Good CLI MCP test tool (`tags: network`, `run_skipped: true`). Measured on
+2026-10-03: flutter_scene 0.23.0 in 1.5 s (12.7 MB, 914 Dart files), AltMe in 3.1 s
+(64.6 MB, 1,347 Dart files).
+
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
-[logo_black]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_black.png#gh-light-mode-only
-[logo_white]: https://raw.githubusercontent.com/VGVentures/very_good_brand/main/styles/README/vgv_logo_white.png#gh-dark-mode-only
-[mason_link]: https://github.com/felangel/mason
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
 [very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
-[very_good_ventures_link]: https://verygood.ventures
-[very_good_ventures_link_light]: https://verygood.ventures#gh-light-mode-only
-[very_good_ventures_link_dark]: https://verygood.ventures#gh-dark-mode-only
-[very_good_workflows_link]: https://github.com/VeryGoodOpenSource/very_good_workflows
