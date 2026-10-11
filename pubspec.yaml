@@ -9,8 +9,7 @@ environment:
 
 dependencies:
   archive: ^4.0.7
-  code_graph:
-    path: ../code_graph
+  code_graph: ^0.1.0
   equatable: ^3.0.0
   http: ^1.6.0
   meta: ^1.16.0
